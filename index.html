@@ -1,99 +1,59 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>المدقّق اللغوي</title>
-  <meta name="theme-color" content="#121212"/>
-  <style>
-    :root{--bg:#121212;--fg:#fff;--card:#1e1e1e;--accent:#3A86FF;--gold:#FFD166;}
-    *{box-sizing:border-box;font-family:'Noto Naskh Arabic', system-ui, sans-serif}
-    body{margin:0;background:var(--bg);color:var(--fg)}
-    header{position:sticky;top:0;background:linear-gradient(#121212dd,#12121200);backdrop-filter:saturate(120%) blur(2px);z-index:5}
-    .wrap{max-width:900px;margin:0 auto;padding:16px}
-    .chips{display:flex;gap:8px;flex-wrap:wrap}
-    .chip{padding:8px 12px;border-radius:999px;border:1px solid #444;background:#0000;cursor:pointer}
-    .chip.on{border-color:var(--accent);background:rgba(58,134,255,.18)}
-    .chip.all.on{border-color:var(--gold);background:rgba(255,209,102,.25)}
-    textarea{width:100%;min-height:48vh;background:var(--card);color:var(--fg);border:1px solid #333;border-radius:16px;padding:16px;font-size:18px;line-height:1.7}
-    .bar{position:fixed;left:0;right:0;bottom:0;padding:12px;background:linear-gradient(#0000,#121212aa,#121212);}
-    .row{display:flex;gap:10px}
-    button{flex:1;padding:14px 16px;border-radius:14px;border:none;color:#fff;background:var(--accent);font-size:16px}
-    button.tonal{background:#2a2a2a}
-    .settings{width:48px;flex:0 0 48px;border-radius:14px;background:#2a2a2a}
-    .hint{opacity:.85;font-size:14px;margin:8px 2px}
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة الأستاذ</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background-color: #2196F3;
+            color: white;
+            padding: 15px;
+            font-size: 24px;
+        }
+        main {
+            margin: 20px;
+        }
+        textarea {
+            width: 90%;
+            height: 150px;
+            font-size: 18px;
+            padding: 10px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            margin-top: 10px;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        footer {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #333;
+            color: white;
+        }
+    </style>
 </head>
 <body>
-  <header>
-    <div class="wrap">
-      <div class="chips">
-        <div class="chip" id="chip-lang">تصحيح اللغة</div>
-        <div class="chip on" id="chip-spell">تدقيق الإملاء</div>
-        <div class="chip" id="chip-meaning">تصحيح المعنى</div>
-        <div class="chip all" id="chip-all">الكل 🌟</div>
-      </div>
-    </div>
-  </header>
-
-  <main class="wrap">
-    <p class="hint">اكتب نصك ثم اضغط «تدقيق». لتحسين الأسلوب اضغط الزر الثاني.</p>
-    <textarea id="text" placeholder="اكتب النص هنا..."></textarea>
-  </main>
-
-  <div class="bar">
-    <div class="wrap">
-      <div class="row">
-        <button id="btn-proof">تدقيق</button>
-        <button class="tonal" id="btn-style">تحسين الأسلوب</button>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    // حالة الأزرار
-    const S={fixLang:false,spell:true,meaning:false,all:false};
-    const $=s=>document.querySelector(s);
-    const toggle=(k)=>{ S[k]=!S[k]; S.all=false; render(); };
-    const render=()=>{
-      $('#chip-lang').classList.toggle('on',S.fixLang);
-      $('#chip-spell').classList.toggle('on',S.spell);
-      $('#chip-meaning').classList.toggle('on',S.meaning);
-      $('#chip-all').classList.toggle('on',S.all);
-    };
-    $('#chip-lang').onclick=()=>toggle('fixLang');
-    $('#chip-spell').onclick=()=>toggle('spell');
-    $('#chip-meaning').onclick=()=>toggle('meaning');
-    $('#chip-all').onclick=()=>{
-      S.all=!S.all; S.fixLang=S.spell=S.meaning=S.all; render();
-    };
-    render();
-
-    // معالجات محلية (أوفلاين)
-    const norm = t => t.replaceAll('?', '؟').replaceAll(',', '،').replace(/ـ+/g,'')
-      .replace(/(،|؛|:|!|؟)([^\s\n\r])/g,(_,p1,p2)=>p1+' '+p2)
-      .replace(/\s+(?=(،|؛|:|!|؟))/g,'')
-      .replace(/(\S)\s{2,}(\S)/g,'$1 $2');
-    const lang = t => t.replace(/\bجدا\b/g,'جدًّا')
-      .replace(/(^|[\.!؟]\s+)(يوجد\s)/g,(_,p1)=>p1+'هناك ');
-    const meaning = t => t.replace(/ذلك\s+الأمر/g,'ذلك')
-      .replace(/(\b[\u0600-\u06FF]+\b)\s+\1/g,'$1');
-    const style = t => t.replace(/\s+/g,' ').trim()
-      .replace(/\bحقا\b/g,'حقًّا').replace(/\bبالرغم\b/g,'على الرغم');
-
-    // أزرار التنفيذ
-    $('#btn-proof').onclick=()=>{
-      const ta=$('#text'); let t=ta.value;
-      const useAll=S.all, doLang=S.fixLang||useAll, doSpell=S.spell||useAll, doMeaning=S.meaning||useAll;
-      if(doSpell) t=norm(t);
-      if(doLang) t=lang(t);
-      if(doMeaning) t=meaning(t);
-      ta.value=t;
-    };
-    $('#btn-style').onclick=()=>{
-      const ta=$('#text'); ta.value=style(ta.value);
-    };
-  </script>
+    <header>📚 منصة الأستاذ</header>
+    <main>
+        <h2>أدخل النص هنا</h2>
+        <textarea placeholder="اكتب النص..."></textarea><br>
+        <button onclick="alert('تم الحفظ بنجاح ✅')">حفظ</button>
+    </main>
+    <footer>© 2025 منصة الأستاذ</footer>
 </body>
 </html>
-https://ouss091.github.io/muddaqiq-pwa-/?v=2
