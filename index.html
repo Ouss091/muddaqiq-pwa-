@@ -1,1 +1,77 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>المدقق - PWA</title>
+  <link rel="manifest" href="manifeste.webmanifest">
+  <style>
+    :root { --bg: #121212; --fg: #ffffff; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    header {
+      background: #333;
+      padding: 10px;
+      text-align: center;
+      font-size: 1.5em;
+    }
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+    }
+    textarea {
+      flex: 1;
+      margin-bottom: 10px;
+      font-size: 1em;
+      padding: 10px;
+    }
+    button {
+      padding: 10px;
+      font-size: 1em;
+      background: #00b894;
+      border: none;
+      color: white;
+      cursor: pointer;
+    }
+    footer {
+      background: #222;
+      text-align: center;
+      padding: 10px;
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <header>📖 المدقق اللغوي</header>
+  <main>
+    <textarea id="text" placeholder="اكتب النص هنا..."></textarea>
+    <button onclick="proofread()">تدقيق النص</button>
+    <div id="result"></div>
+  </main>
+  <footer>© 2025 - تطبيق المدقق</footer>
 
+  <script>
+    async function proofread() {
+      const text = document.getElementById("text").value;
+      const response = await fetch("https://muddaqiq-backend.onrender.com/proofread", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, check_spelling: true })
+      });
+      const data = await response.json();
+      document.getElementById("result").innerText = data.improved || "لم يتم العثور على تعديل";
+    }
+  </script>
+</body>
+</html>
