@@ -1,77 +1,161 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>المدقق - PWA</title>
-  <link rel="manifest" href="manifeste.webmanifest">
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>المدقّق اللغوي</title>
+  <meta name="theme-color" content="#121212"/>
   <style>
-    :root { --bg: #121212; --fg: #ffffff; }
-    body {
-      margin: 0;
-      background: var(--bg);
-      color: var(--fg);
-      font-family: sans-serif;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-    }
-    header {
-      background: #333;
-      padding: 10px;
-      text-align: center;
-      font-size: 1.5em;
-    }
-    main {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      padding: 20px;
-    }
-    textarea {
-      flex: 1;
-      margin-bottom: 10px;
-      font-size: 1em;
-      padding: 10px;
-    }
-    button {
-      padding: 10px;
-      font-size: 1em;
-      background: #00b894;
-      border: none;
-      color: white;
-      cursor: pointer;
-    }
-    footer {
-      background: #222;
-      text-align: center;
-      padding: 10px;
-      position: fixed;
-      bottom: 0;
-      width: 100%;
-    }
+    :root{--bg:#121212;--fg:#fff;--card:#1e1e1e;--accent:#3A86FF;--gold:#FFD166;}
+    *{box-sizing:border-box;font-family:'Noto Naskh Arabic', system-ui, sans-serif}
+    body{margin:0;background:var(--bg);color:var(--fg)}
+    header{position:sticky;top:0;background:linear-gradient(#121212dd,#12121200);backdrop-filter:saturate(120%) blur(2px);z-index:5}
+    .wrap{max-width:900px;margin:0 auto;padding:16px}
+    .chips{display:flex;gap:8px;flex-wrap:wrap}
+    .chip{padding:8px 12px;border-radius:999px;border:1px solid #444;background:#0000;cursor:pointer}
+    .chip.on{border-color:var(--accent);background:rgba(58,134,255,.18)}
+    .chip.all.on{border-color:var(--gold);background:rgba(255,209,102,.25)}
+    textarea{width:100%;min-height:48vh;background:var(--card);color:var(--fg);border:1px solid #333;border-radius:16px;padding:16px;font-size:18px;line-height:1.7}
+    .bar{position:fixed;left:0;right:0;bottom:0;padding:12px;background:linear-gradient(#0000,#121212aa,#121212);}
+    .row{display:flex;gap:10px}
+    button{flex:1;padding:14px 16px;border-radius:14px;border:none;color:#fff;background:var(--accent);font-size:16px}
+    button.tonal{background:#2a2a2a}
+    .settings{width:48px;flex:0 0 48px;border-radius:14px;background:#2a2a2a}
+    .hint{opacity:.85;font-size:14px;margin:8px 2px}
+    dialog{border:none;border-radius:16px;padding:18px;max-width:min(92vw,520px);background:#1e1e1e;color:#fff}
+    input[type=text]{width:100%;padding:10px;border-radius:10px;border:1px solid #444;background:#111;color:#fff;margin:8px 0}
   </style>
 </head>
 <body>
-  <header>📖 المدقق اللغوي</header>
-  <main>
+  <header>
+    <div class="wrap">
+      <div class="chips">
+        <div class="chip" id="chip-lang">تصحيح اللغة</div>
+        <div class="chip on" id="chip-spell">تدقيق الإملاء</div>
+        <div class="chip" id="chip-meaning">تصحيح المعنى</div>
+        <div class="chip all" id="chip-all">الكل 🌟</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <p class="hint">اكتب نصك ثم اضغط «تدقيق». لتحسين الأسلوب اضغط الزر الثاني. من ⚙️ تستطيع وضع رابط الخادم (اختياري).</p>
     <textarea id="text" placeholder="اكتب النص هنا..."></textarea>
-    <button onclick="proofread()">تدقيق النص</button>
-    <div id="result"></div>
+    <div class="hint">الحالة: <b id="status">وضع غير متصل (معالجة محلية)</b></div>
+    <div class="hint">الخادم: <code id="apiLabel">—</code></div>
   </main>
-  <footer>© 2025 - تطبيق المدقق</footer>
+
+  <div class="bar">
+    <div class="wrap">
+      <div class="row">
+        <button id="btn-proof">تدقيق</button>
+        <button class="tonal" id="btn-style">تحسين الأسلوب</button>
+        <button class="settings" id="btn-settings">⚙️</button>
+      </div>
+    </div>
+  </div>
+
+  <dialog id="dlg">
+    <form method="dialog">
+      <h3 style="margin:0 0 8px">الإعدادات</h3>
+      <label>رابط خادم الذكاء الاصطناعي (اختياري):</label>
+      <input id="apiBase" type="text" placeholder="مثال: https://your-backend.example.com"/>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+        <button value="cancel" class="tonal" style="flex:0 0 auto">إلغاء</button>
+        <button id="saveSettings" style="flex:0 0 auto;background:var(--gold);color:#000">حفظ</button>
+      </div>
+    </form>
+  </dialog>
 
   <script>
-    async function proofread() {
-      const text = document.getElementById("text").value;
-      const response = await fetch("https://muddaqiq-backend.onrender.com/proofread", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, check_spelling: true })
-      });
-      const data = await response.json();
-      document.getElementById("result").innerText = data.improved || "لم يتم العثور على تعديل";
+    // ============== الحالة وحفظ الإعدادات ==============
+    const $ = s => document.querySelector(s);
+    const S = {
+      fixLang: JSON.parse(localStorage.getItem('fixLang') ?? 'false'),
+      spell: JSON.parse(localStorage.getItem('spell') ?? 'true'),
+      meaning: JSON.parse(localStorage.getItem('meaning') ?? 'false'),
+      all: JSON.parse(localStorage.getItem('all') ?? 'false'),
+      apiBase: localStorage.getItem('apiBase') ?? ''
+    };
+    function save(){
+      localStorage.setItem('fixLang', JSON.stringify(S.fixLang));
+      localStorage.setItem('spell', JSON.stringify(S.spell));
+      localStorage.setItem('meaning', JSON.stringify(S.meaning));
+      localStorage.setItem('all', JSON.stringify(S.all));
+      localStorage.setItem('apiBase', S.apiBase);
     }
+    function render(){
+      $('#chip-lang').classList.toggle('on', S.fixLang);
+      $('#chip-spell').classList.toggle('on', S.spell);
+      $('#chip-meaning').classList.toggle('on', S.meaning);
+      $('#chip-all').classList.toggle('on', S.all);
+      $('#apiLabel').textContent = S.apiBase || '—';
+      $('#status').textContent = S.apiBase ? 'سيتصل بالخادم عند الضغط' : 'وضع غير متصل (معالجة محلية)';
+    }
+    // تبديل الشرائح
+    $('#chip-lang').onclick = ()=>{ S.fixLang=!S.fixLang; S.all=false; save(); render(); };
+    $('#chip-spell').onclick = ()=>{ S.spell=!S.spell; S.all=false; save(); render(); };
+    $('#chip-meaning').onclick = ()=>{ S.meaning=!S.meaning; S.all=false; save(); render(); };
+    $('#chip-all').onclick = ()=>{ S.all=!S.all; S.fixLang=S.all; S.spell=S.all; S.meaning=S.all; save(); render(); };
+
+    // ============== معالجات محلية (تعمل دائمًا) ==============
+    const norm = t => t
+      .replaceAll('?', '؟')
+      .replaceAll(',', '،')
+      .replace(/ـ+/g, '')
+      .replace(/(،|؛|:|!|؟)([^\s\n\r])/g, (_,p1,p2)=> p1+' '+p2)
+      .replace(/\s+(?=(،|؛|:|!|؟))/g, '')
+      .replace(/(\S)\s{2,}(\S)/g, '$1 $2');
+    const lang = t => t
+      .replace(/\bجدا\b/g, 'جدًّا')
+      .replace(/(^|[\.!؟]\s+)(يوجد\s)/g, (_,p1)=> p1+'هناك ');
+    const meaning = t => t
+      .replace(/ذلك\s+الأمر/g, 'ذلك')
+      .replace(/(\b[\u0600-\u06FF]+\b)\s+\1/g, '$1');
+    const style = t => t
+      .replace(/\s+/g, ' ').trim()
+      .replace(/\bحقا\b/g, 'حقًّا')
+      .replace(/\bبالرغم\b/g, 'على الرغم');
+
+    // ============== استدعاء خادم (اختياري) ==============
+    async function callAPI(path, body){
+      if(!S.apiBase) throw new Error('no-api');
+      const url = S.apiBase.replace(/\/$/,'') + path;
+      const res = await fetch(url, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(body), cache: 'no-store'
+      });
+      if(!res.ok) throw new Error('bad-status');
+      const data = await res.json();
+      return data.improved ?? body.text;
+    }
+
+    // أزرار
+    $('#btn-proof').onclick = async ()=>{
+      const ta = $('#text'); let t = ta.value;
+      const useAll = S.all, doLang = S.fixLang||useAll, doSpell = S.spell||useAll, doMeaning = S.meaning||useAll;
+      try{
+        const r = await callAPI('/proofread', {text:t, fix_language:doLang, check_spelling:doSpell, fix_meaning:doMeaning});
+        ta.value = r;
+      }catch{
+        if(doSpell) t = norm(t);
+        if(doLang) t = lang(t);
+        if(doMeaning) t = meaning(t);
+        ta.value = t;
+      }
+    };
+    $('#btn-style').onclick = async ()=>{
+      const ta = $('#text'); let t = ta.value;
+      try{ ta.value = await callAPI('/style', {text:t}); }
+      catch{ ta.value = style(t); }
+    };
+
+    // إعدادات
+    const dlg = $('#dlg');
+    $('#btn-settings').onclick = ()=>{ $('#apiBase').value = S.apiBase; dlg.showModal(); };
+    $('#saveSettings').onclick = (e)=>{ e.preventDefault(); S.apiBase = $('#apiBase').value.trim(); save(); render(); dlg.close(); };
+
+    render();
   </script>
 </body>
 </html>
